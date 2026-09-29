@@ -51,6 +51,21 @@ public class MainActivity extends Activity {
         showLockedSplash();
     }
 
+    private void installMenuActions(WebView view){
+        String js =
+        "(function(){const d=document.getElementById('sideDrawer');if(!d||d.dataset.hkBound)return;d.dataset.hkBound='1';"+
+        "const bs=[...d.querySelectorAll('button')],close=()=>{d.classList.remove('open');document.getElementById('drawerBackdrop')?.classList.remove('open')},pop=(t,m)=>{close();setTimeout(()=>alert(t+'\\n\\n'+m),80)},by=t=>bs.find(b=>b.textContent.includes(t));"+
+        "by('Profile')?.addEventListener('click',()=>{let s=null;try{s=JSON.parse(localStorage.getItem('hk_sb_session')||'null')}catch(e){};const u=s?.user||{},m=u.user_metadata||{};pop('Profile','Name: '+(m.name||'Customer')+'\\nEmail: '+(u.email||'—')+'\\nMobile: '+(m.mobile||'—'))});"+
+        "by('My Purchases')?.addEventListener('click',async()=>{close();let s=null;try{s=JSON.parse(localStorage.getItem('hk_sb_session')||'null')}catch(e){};if(!s?.user?.id){pop('My Purchases','Login required.');return}try{const r=await fetch(SB_URL+'/rest/v1/subscriptions?select=status,expires_at,plan_months&user_id=eq.'+encodeURIComponent(s.user.id),{headers:{apikey:SB_KEY,Authorization:'Bearer '+s.access_token}});if(!r.ok)throw Error('HTTP '+r.status);const rows=await r.json();pop('My Purchases',rows.length?rows.map((x,i)=>(i+1)+'. '+(x.status||'unknown')+' • '+(x.plan_months||'—')+' month • Valid till '+(x.expires_at?new Date(x.expires_at).toLocaleDateString('en-IN'):'—')).join('\\n'):'अभी कोई active purchase नहीं मिला।')}catch(e){pop('My Purchases','Data load नहीं हुआ: '+e.message)}});"+
+        "by('Progress Report')?.addEventListener('click',()=>pop('Progress Report','Progress Report module अभी backend records से connected नहीं है।'));"+
+        "by('Rate App')?.addEventListener('click',()=>pop('Rate App','Play Store listing publish होने के बाद rating link activate होगा।'));"+
+        "const share=async()=>{close();const t='Healthy KrishiTech — जीवन का आधार देश का किसान. किसानों के लिए उपयोगी agriculture calculators.';try{if(navigator.share){await navigator.share({title:'Healthy KrishiTech',text:t});return}}catch(e){}pop('Share App',t)};"+
+        "by('Refer & Earn')?.addEventListener('click',share);by('Share App')?.addEventListener('click',share);"+
+        "by('Refund Policy')?.addEventListener('click',()=>pop('Refund Policy','Approved final Refund Policy text अभी app source में उपलब्ध नहीं है।'));"+
+        "by('WhatsApp Support')?.addEventListener('click',()=>pop('WhatsApp Support','Support WhatsApp number अभी app source में configured नहीं है।'));})();";
+        view.evaluateJavascript(js,null);
+    }
+
     private int rawId(String name) {
         return getResources().getIdentifier(name, "raw", getPackageName());
     }
