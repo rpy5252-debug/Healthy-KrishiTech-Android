@@ -1,0 +1,1 @@
+<resources><style name="Theme.HealthyKrishiTech" parent="android:style/Theme.Material.Light.NoActionBar"><item name="android:fontFamily">sans</item><item name="android:colorAccent">#087533</item><item name="android:navigationBarColor">#087533</item><item name="android:statusBarColor">#087533</item><item name="android:windowLightStatusBar">false</item></style></resources>
