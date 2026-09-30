@@ -42,6 +42,8 @@ public class MainActivity extends Activity {
         webView.setWebChromeClient(new WebChromeClient());
         webView.setWebViewClient(new WebViewClient(){
             @Override public boolean shouldOverrideUrlLoading(WebView view, String url){
+                if(url == null) return false;
+                if(url.startsWith("file:///android_asset/")) return false;
                 if(url.startsWith("http://") || url.startsWith("https://")) return false;
                 try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url))); return true; }
                 catch(Exception e){ return false; }
