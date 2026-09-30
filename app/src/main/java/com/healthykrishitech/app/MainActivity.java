@@ -46,6 +46,12 @@ public class MainActivity extends Activity {
                 try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url))); return true; }
                 catch(Exception e){ return false; }
             }
+            @Override public void onPageFinished(WebView view, String url){
+                super.onPageFinished(view, url);
+                if(url != null && url.contains("index.html")){
+                    view.postDelayed(() -> installMenuActions(view), 300);
+                }
+            }
         });
         webView.loadUrl("file:///android_asset/index.html");
         showLockedSplash();
