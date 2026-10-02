@@ -51,7 +51,7 @@ public class MainActivity extends Activity {
             @Override public void onPageFinished(WebView view, String url){
                 super.onPageFinished(view, url);
                 if(url != null && url.contains("index.html")){
-                    view.postDelayed(() -> installMenuActions(view), 300);
+                    view.postDelayed(() -> { installMenuActions(view); }, 300);
                 }
             }
         });
