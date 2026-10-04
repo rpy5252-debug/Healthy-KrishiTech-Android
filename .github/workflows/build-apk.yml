@@ -37,6 +37,6 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Healthy-KrishiTech-SoilMB-APK
+          name: Healthy-KrishiTech-FINAL-APK
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
