@@ -1,0 +1,10 @@
+Healthy KrishiTech V4 device/access static test: PASS
+- Same authenticated Supabase session model.
+- Device RPC: hkt_register_device_slot.
+- Android/mobile maps to mobile slot.
+- Desktop browser maps to computer slot.
+- One active slot of each type allowed by backend.
+- Product unlock remains user_entitlements + product_id specific.
+- SOIL_LT continues to expose LT Summary as companion.
+- No Razorpay secret embedded by this change.
+- Android compilation requires GitHub Actions/Android SDK.

@@ -1,0 +1,46 @@
+<!doctype html><html lang="hi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LT सारांश V2</title><style>
+*{box-sizing:border-box}body{font-family:Arial,"Noto Sans Devanagari",sans-serif;background:#f4f7fb;margin:0;color:#17233a}
+h1{background:#173f73;color:white;margin:0;padding:12px}.w{padding:12px;max-width:1900px;margin:auto}.bar,.settings{background:white;border:1px solid #ccd7e3;border-radius:9px;padding:10px;margin:10px 0;display:flex;gap:7px;flex-wrap:wrap;align-items:end}
+button,select,input{border:1px solid #b8c5d2;border-radius:5px;padding:7px}.bar button{font-weight:700;background:white}.primary{background:#17633a!important;color:white}
+.settings label{font-size:12px;font-weight:700}.settings input{display:block;width:120px;color:#b71c1c;font-weight:700}.box{overflow:auto;background:white;padding:8px;border-radius:9px}
+table{border-collapse:collapse;min-width:3000px;width:100%;table-layout:fixed}th,td{border:1px solid #bdc9d5;padding:4px;text-align:center;font-size:11px}th{background:#174e88;color:white}
+td input{width:100%;min-width:5.5em;padding:5px;color:#b71c1c;font-weight:700;background:#fff8f8}.auto{color:#137333!important;background:#f2fff5!important}
+tfoot td{background:#effcf2;color:#126b35;font-weight:800}.rowbtn{padding:4px 7px;font-weight:800}.clearrow{color:#126b35}.delrow{color:#a00}.note{font-size:12px;color:#5d6874}
+@media print{.noprint{display:none!important}body{background:white}.box{overflow:visible;padding:0}table{min-width:0}th,td,td input{font-size:7px;padding:1px}td input{border:0;background:transparent;color:#000!important}.large th,.large td,.large input{font-size:8px}.big th,.big td,.big input{font-size:9px}.xbig th,.xbig td,.xbig input{font-size:10px}}
+</style></head><body><h1>LT सारांश</h1><div class="w">
+<div class="bar noprint"><button id="add" class="primary">➕ Add Line</button><button id="save">💾 Save</button><button id="load">📂 Load</button><button id="clear">🧹 Clear All</button><select id="size"><option value="large">Large</option><option value="big">Big Large</option><option value="xbig">Extra Big Large</option></select><button id="print">🖨️ Print</button></div>
+<div class="settings noprint"><label>अनुमानित दर<input id="sEstRate" type="number" step=".01"></label><label>ट्रैक्टर रेट ₹/घंटा<input id="sTractor" type="number" value="645" step=".01"></label><label>बंड की दर ₹<input id="sBundRate" type="number" value="83.34" step=".01"></label><label>Settlement %<input id="sSettlement" type="number" value="7.5" step=".01"></label><label>मानव दिवस दर ₹<input id="sLabour" type="number" value="252" step=".01"></label></div>
+<p class="note noprint">लाल = manual entry, हरा = automatic calculation. Tractor amount में मिनट को घंटे के अंश में बदला जाता है।</p>
+<div id="sheet" class="box large"><table><thead><tr>
+<th>S.No.</th><th>Page No.</th><th>मद का नाम</th><th>क्षेत्रफल (Ha)</th><th>खसरा संख्या</th><th>लंबाई</th><th>अनुमानित मृदा कार्य</th><th>अनुमानित दर</th><th>अनुमानित धनराशि</th><th>मापित मृदा कार्य</th><th>घंटा<br>(ट्रैक्टर)</th><th>मिनट<br>(ट्रैक्टर)</th><th>ट्रैक्टर रेट</th><th>ट्रैक्टर धनराशि</th><th>मृदा बंड</th><th>बंड की दर</th><th>बंड धनराशि</th><th>झाड़ी/स्थल सफाई</th><th>7.5% Settlement Less</th><th>मानव दिवस</th><th>मानव दिवस दर</th><th>मानव दिवस राशि</th><th>कुल धनराशि<br>(ट्रैक्टर + मानव दिवस)</th><th>कृषक का नाम</th><th>पिता का नाम</th><th>✓ / ×</th>
+</tr></thead><tbody id="rows"></tbody><tfoot><tr id="foot"></tr></tfoot></table></div></div>
+<script>
+const $=x=>document.getElementById(x),N=v=>{v=parseFloat(v);return isFinite(v)?v:0},F=v=>v?Number(v).toFixed(2):'';
+const fields=['page','item','area','khasra','len','estsoil','estrate','estamt','measured','hour','minute','tractorrate','tractoramt','bund','bundrate','bundamt','clean','settlement','manday','labourrate','labouramt','grand','farmer','father'];
+const totalFields=['area','len','estsoil','estamt','measured','hour','minute','tractoramt','bund','bundamt','clean','settlement','manday','labouramt','grand'];
+function inp(c,auto=false){return `<input class="${c}${auto?' auto':''}" ${auto?'readonly':''}>`}
+function add(o={}){let r=$('rows').insertRow();r.innerHTML=`<td class="sn"></td>${fields.map(f=>'<td>'+inp(f,['estrate','estamt','tractorrate','tractoramt','bundrate','bundamt','settlement','labourrate','labouramt','grand'].includes(f))+'</td>').join('')}<td><button class="rowbtn clearrow">✓</button> <button class="rowbtn delrow">×</button></td>`;
+ fields.forEach(f=>{let e=r.querySelector('.'+f);if(o[f]!=null)e.value=o[f]});
+ r.querySelectorAll('input:not([readonly])').forEach(e=>{e.maxLength=5;e.addEventListener('input',()=>calcRow(r))});
+ r.querySelector('.clearrow').onclick=()=>{if(confirm('इस लाइन का डेटा साफ करें?')){r.querySelectorAll('input:not([readonly])').forEach(e=>e.value='');calcRow(r)}};
+ r.querySelector('.delrow').onclick=()=>{if(confirm('यह लाइन Delete करें?')){r.remove();ren();totals()}};
+ ren();calcRow(r)}
+function calcRow(r){let estRate=N($('sEstRate').value),tractor=N($('sTractor').value),bundRate=N($('sBundRate').value),sett=N($('sSettlement').value),lab=N($('sLabour').value);
+ r.querySelector('.estrate').value=F(estRate);r.querySelector('.estamt').value=F(N(r.querySelector('.estsoil').value)*estRate);
+ r.querySelector('.tractorrate').value=F(tractor);let hrs=N(r.querySelector('.hour').value)+N(r.querySelector('.minute').value)/60;r.querySelector('.tractoramt').value=F(hrs*tractor);
+ r.querySelector('.bundrate').value=F(bundRate);let ba=N(r.querySelector('.bund').value)*bundRate;r.querySelector('.bundamt').value=F(ba);
+ r.querySelector('.settlement').value=F(ba*sett/100);
+ r.querySelector('.labourrate').value=F(lab);r.querySelector('.labouramt').value=F(N(r.querySelector('.manday').value)*lab);
+ r.querySelector('.grand').value=F(N(r.querySelector('.tractoramt').value)+N(r.querySelector('.labouramt').value));totals()}
+function ren(){[...$('rows').rows].forEach((r,i)=>r.querySelector('.sn').textContent=i+1)}
+function totals(){totalFields.forEach(f=>{let t=[...document.querySelectorAll('#rows .'+f)].reduce((a,e)=>a+N(e.value),0),x=$('t_'+f);if(x)x.textContent=F(t)})}
+function makeFoot(){let tr=$('foot');tr.innerHTML='<td>TOTAL</td>'+fields.map(f=>`<td id="t_${f}">${totalFields.includes(f)?'':''}</td>`).join('')+'<td></td>'}
+function get(){return {settings:{est:$('sEstRate').value,tractor:$('sTractor').value,bund:$('sBundRate').value,sett:$('sSettlement').value,lab:$('sLabour').value},rows:[...$('rows').rows].map(r=>Object.fromEntries(fields.map(f=>[f,r.querySelector('.'+f).value])))}}
+function recalc(){[...$('rows').rows].forEach(calcRow)}
+makeFoot();$('add').onclick=()=>add();$('save').onclick=()=>{localStorage.setItem('lt_summary_v2',JSON.stringify(get()));alert('Data Saved')};$('load').onclick=()=>{let d=JSON.parse(localStorage.getItem('lt_summary_v2')||'null');if(!d)return;$('sEstRate').value=d.settings.est;$('sTractor').value=d.settings.tractor;$('sBundRate').value=d.settings.bund;$('sSettlement').value=d.settings.sett;$('sLabour').value=d.settings.lab;$('rows').innerHTML='';(d.rows.length?d.rows:[{}]).forEach(add);recalc()};$('clear').onclick=()=>{if(confirm('पूरा डेटा साफ करें?')){$('rows').innerHTML='';localStorage.removeItem('lt_summary_v2');add()}};$('size').onchange=e=>$('sheet').className='box '+e.target.value;$('print').onclick=()=>window.print();['sEstRate','sTractor','sBundRate','sSettlement','sLabour'].forEach(id=>$(id).oninput=recalc);add();
+</script>
+<style id="hktGuardStyle">#hktGuard{position:fixed;inset:0;z-index:2147483646;background:rgba(4,30,18,.96);display:flex;align-items:center;justify-content:center;padding:20px;color:#fff;font-family:Arial}#hktGuard>div{max-width:460px;text-align:center}#hktGuard button{padding:12px 18px;border:0;border-radius:10px;font-weight:800}</style>
+<script id="hktProductGuard">(function(){const PID=4;const FREE=true;function back(){location.href='index.html'};const g=document.createElement('div');g.id='hktGuard';g.innerHTML='<div><h2>Healthy KrishiTech</h2><p id="hktGuardMsg">Secure product access check…</p><button onclick="location.href=\'index.html\'">Dashboard</button></div>';document.addEventListener('DOMContentLoaded',()=>document.body.appendChild(g));async function run(){let s=null;try{s=JSON.parse(localStorage.getItem('hk_sb_session')||'null')}catch(e){};if(!s?.access_token||!s?.user?.id){document.getElementById('hktGuardMsg').textContent='Login required.';return}try{const U='https://irkbuqavzfajrpuolzid.supabase.co',K='sb_publishable_dnYAoZd4RFDbWnntZbryAw_IbZOZwIk';const q=U+'/rest/v1/user_entitlements?select=status,expires_at&user_id=eq.'+encodeURIComponent(s.user.id)+'&product_id=eq.'+PID+'&status=eq.active&order=expires_at.desc&limit=1';const r=await fetch(q,{headers:{apikey:K,Authorization:'Bearer '+s.access_token}});if(!r.ok)throw Error('HTTP '+r.status);const a=await r.json(),x=a[0];if(x&&new Date(x.expires_at)>new Date()){g.remove();return}document.getElementById('hktGuardMsg').textContent=FREE?'LT active plan के साथ यह FREE tool unlock होगा।':'इस product का active plan/trial आवश्यक है।'}catch(e){document.getElementById('hktGuardMsg').textContent='Access check failed. Dashboard से दोबारा प्रयास करें।'}}window.addEventListener('load',run)})();</script>
+
+</body></html>

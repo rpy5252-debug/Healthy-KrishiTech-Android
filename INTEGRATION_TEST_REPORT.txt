@@ -1,0 +1,25 @@
+Healthy KrishiTech Android FIXED V3
+Expected flow:
+1. App launcher -> native Healthy KrishiTech splash (3 seconds)
+2. app/src/main/assets/index.html
+3. Register/Login screen
+4. Healthy KrishiTech dashboard
+5. Four product cards:
+   - SOIL_MB / Product 1
+   - CD_MEASUREMENT / Product 2
+   - SOIL_LT / Product 4 (+ LT Summary FREE)
+   - KRISHAK_ANUDAN / Product 5
+6. Product access query uses user_entitlements filtered by authenticated user_id + product_id + active status.
+7. Calculator opens inside same Android WebView via HKAndroid.openAsset().
+8. Back button returns through WebView history.
+
+Static validation performed:
+- All six HTML assets present.
+- MainActivity loads file:///android_asset/index.html.
+- Native asset bridge present.
+- Main dashboard renderer is called from authenticated enter().
+- Legacy per-product dashboard setup bypassed.
+- Android manifest launcher is Healthy KrishiTech.
+- ZIP integrity checked.
+- Inline JavaScript syntax checked.
+- Java compilation not run here because Android/Gradle SDK is not installed in this execution environment.

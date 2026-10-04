@@ -17,6 +17,7 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.content.Intent;
 import android.net.Uri;
+import android.webkit.JavascriptInterface;
 
 public class MainActivity extends Activity {
     private WebView webView;
@@ -40,10 +41,20 @@ public class MainActivity extends Activity {
         s.setAllowContentAccess(true);
         s.setJavaScriptCanOpenWindowsAutomatically(true);
         webView.setWebChromeClient(new WebChromeClient());
+        webView.addJavascriptInterface(new Object(){
+            @JavascriptInterface public void openAsset(String file){
+                if(file == null || !file.matches("[A-Za-z0-9._-]+\\.html")) return;
+                runOnUiThread(() -> webView.loadUrl("file:///android_asset/" + file));
+            }
+        }, "HKAndroid");
         webView.setWebViewClient(new WebViewClient(){
             @Override public boolean shouldOverrideUrlLoading(WebView view, String url){
                 if(url == null) return false;
                 if(url.startsWith("file:///android_asset/")) return false;
+                if(url.startsWith("content://") && (url.contains("lt-calculator.html") || url.contains("lt-summary.html") || url.contains("krishak-anudan.html") || url.contains("soil-mb.html") || url.contains("cd-calculator.html"))){
+                    String f = url.contains("lt-summary.html") ? "lt-summary.html" : (url.contains("krishak-anudan.html") ? "krishak-anudan.html" : (url.contains("lt-calculator.html") ? "lt-calculator.html" : (url.contains("soil-mb.html") ? "soil-mb.html" : "cd-calculator.html")));
+                    view.loadUrl("file:///android_asset/" + f); return true;
+                }
                 if(url.startsWith("http://") || url.startsWith("https://")) return false;
                 try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url))); return true; }
                 catch(Exception e){ return false; }
@@ -116,7 +127,7 @@ public class MainActivity extends Activity {
                 root.removeView(splash);
                 splashView=null;
             }).start();
-        },4000);
+        },3000);
     }
 
     @Override public void onBackPressed(){
