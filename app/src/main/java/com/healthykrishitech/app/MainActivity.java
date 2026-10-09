@@ -43,7 +43,16 @@ public class MainActivity extends Activity {
         webView.setWebChromeClient(new WebChromeClient());
         webView.addJavascriptInterface(new Object(){
             @JavascriptInterface public void openAsset(String file){
-                if(file == null || !file.matches("[A-Za-z0-9._-]+\\.html")) return;
+                // Only allow navigation from our bundled app pages, never from a remote website.
+                String currentUrl = webView.getUrl();
+                if(currentUrl == null || !currentUrl.startsWith("file:///android_asset/")) return;
+                // Restrict the bridge to the HTML assets that are actually part of this app.
+                if(file == null || !(file.equals("index.html")
+                    || file.equals("cd-calculator.html")
+                    || file.equals("krishak-anudan.html")
+                    || file.equals("lt-calculator.html")
+                    || file.equals("lt-summary.html")
+                    || file.equals("soil-mb.html"))) return;
                 runOnUiThread(() -> webView.loadUrl("file:///android_asset/" + file));
             }
         }, "HKAndroid");
