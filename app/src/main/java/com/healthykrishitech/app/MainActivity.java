@@ -108,24 +108,15 @@ public class MainActivity extends Activity {
         if(splashId != 0) background.setImageResource(splashId);
         splash.addView(background, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
-        ImageView logo = new ImageView(this);
-        logo.setScaleType(ImageView.ScaleType.FIT_CENTER);
-        int logoId = rawId("hk_logo_locked");
-        if(logoId != 0) logo.setImageResource(logoId);
-        logo.setAlpha(0f);
-        logo.setScaleX(0.42f);
-        logo.setScaleY(0.42f);
-        logo.setTranslationZ(24f);
-
-        int size=(int)(getResources().getDisplayMetrics().widthPixels*0.68f);
-        FrameLayout.LayoutParams lp=new FrameLayout.LayoutParams(size,size);
-        lp.gravity=Gravity.CENTER;
-        splash.addView(logo,lp);
+        // The splash artwork already contains the Healthy KrishiTech logo.
+        // Animate the complete artwork instead of drawing a second logo over it.
+        background.setScaleX(1.0f);
+        background.setScaleY(1.0f);
 
         root.addView(splash,new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.MATCH_PARENT));
         splashView=splash;
 
-        logo.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(1500)
+        background.animate().scaleX(1.035f).scaleY(1.035f).setDuration(2200)
             .setInterpolator(new AccelerateDecelerateInterpolator()).start();
 
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
