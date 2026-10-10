@@ -141,6 +141,14 @@ public class MainActivity extends Activity {
 
     @Override public void onBackPressed(){
         if(splashView!=null) return;
-        if(webView!=null && webView.canGoBack()) webView.goBack(); else super.onBackPressed();
+        if(webView==null){ super.onBackPressed(); return; }
+        String url=webView.getUrl();
+        // Calculator pages always return straight to the existing dashboard.
+        // This avoids replaying splash/login or walking through WebView history.
+        if(url!=null && url.startsWith("file:///android_asset/") && !url.contains("index.html")){
+            webView.loadUrl("file:///android_asset/index.html");
+            return;
+        }
+        if(webView.canGoBack()) webView.goBack(); else super.onBackPressed();
     }
 }
