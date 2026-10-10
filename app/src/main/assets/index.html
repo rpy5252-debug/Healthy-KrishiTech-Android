@@ -20,14 +20,14 @@
 <div id="drawerBackdrop" class="drawer-backdrop"></div>
 <aside id="sideDrawer" class="drawer">
   <h2>☰ Menu</h2>
-  <button>👤 Profile</button>
-  <button>🛒 My Purchases</button>
-  <button>📊 Progress Report</button>
-  <button>⭐ Rate App</button>
-  <button>🎁 Refer & Earn</button>
-  <button>🔗 Share App</button>
-  <button>📄 Refund Policy</button>
-  <button class="support">💬 WhatsApp Support</button>
+  <button id="menuProfile">👤 Profile</button>
+  <button id="menuPurchases">🛒 My Purchases</button>
+  <button id="menuProgress">📊 Progress Report</button>
+  <button id="menuRate">⭐ Rate App</button>
+  <button id="menuRefer">🎁 Refer & Earn</button>
+  <button id="menuShare">🔗 Share App</button>
+  <button id="menuRefund">📄 Refund Policy</button>
+  <button id="menuSupport" class="support">💬 WhatsApp Support</button>
   <button id="drawerLogout" class="logout">↪ Logout</button>
 </aside>
 <div id="notifyPanel" class="notify-panel">
@@ -46,7 +46,9 @@ function authView(){$('splash').style.display='none';$('home').style.display='no
 function setMode(m){mode=m;let reg=m==='register';$('name').classList.toggle('hide',!reg);$('mobile').classList.toggle('hide',!reg);$('authBtn').textContent=reg?'Create Account':'Login';$('loginTab').className=reg?'secondary':'primary';$('registerTab').className=reg?'primary':'secondary';$('forgot').classList.toggle('hide',reg);$('msg').textContent=''}
 $('loginTab').onclick=()=>setMode('login');$('registerTab').onclick=()=>setMode('register');
 $('authBtn').onclick=async()=>{let email=$('email').value.trim().toLowerCase(),password=$('password').value;try{$('msg').textContent='Please wait…';if(!email||password.length<6)throw Error('Valid email और कम से कम 6 character password डालें।');if(mode==='register'){let name=$('name').value.trim(),mobile=$('mobile').value.trim();if(!name||!mobile)throw Error('Name और mobile number भरें।');let j=await api('/auth/v1/signup',{method:'POST',body:JSON.stringify({email,password,data:{name,mobile}})});if(j.access_token){save(j);await enter(j)}else $('msg').textContent='Registration successful. Email confirmation भेजी गई है; confirm करके Login करें।'}else{let j=await api('/auth/v1/token?grant_type=password',{method:'POST',body:JSON.stringify({email,password})});save(j);await enter(j)}}catch(e){$('msg').textContent=e.message}};
-$('forgot').onclick=async()=>{let email=$('email').value.trim().toLowerCase();try{if(!email)throw Error('पहले email डालें।');await api('/auth/v1/recover',{method:'POST',body:JSON.stringify({email})});$('msg').textContent='Password reset email भेज दी गई है।'}catch(e){$('msg').textContent=e.message}};
+$('forgot').onclick=async()=>{let email=$('email').value.trim().toLowerCase();try{if(!email)throw Error('पहले email डालें।');let redirect=(location.protocol==='http:'||location.protocol==='https:')?location.href.split('#')[0].split('?')[0]:'https://rpy5252-debug.github.io/Healthy-KrishiTech-Android/';await api('/auth/v1/recover?redirect_to='+encodeURIComponent(redirect),{method:'POST',body:JSON.stringify({email})});$('msg').textContent='Password reset email भेज दी गई है। Email में आए link से नया password सेट करें।'}catch(e){$('msg').textContent=e.message}};
+function recoverySession(){let p=new URLSearchParams(location.hash.slice(1));if(p.get('type')==='recovery'&&p.get('access_token'))return {access_token:p.get('access_token'),refresh_token:p.get('refresh_token')||''};return null}
+function showPasswordReset(r){authView();$('loginTab').classList.add('hide');$('registerTab').classList.add('hide');$('name').classList.add('hide');$('email').classList.add('hide');$('mobile').classList.add('hide');$('forgot').classList.add('hide');$('google').classList.add('hide');$('password').value='';$('password').placeholder='नया password (कम से कम 6 characters)';let c=document.getElementById('confirmPassword');if(!c){c=document.createElement('input');c.id='confirmPassword';c.type='password';c.placeholder='नया password दोबारा डालें';$('password').insertAdjacentElement('afterend',c)}$('authBtn').textContent='Set New Password';$('msg').textContent='नया password सेट करें।';$('authBtn').onclick=async()=>{try{let a=$('password').value,b=$('confirmPassword').value;if(a.length<6)throw Error('Password कम से कम 6 characters का रखें।');if(a!==b)throw Error('दोनों password समान नहीं हैं।');$('msg').textContent='Please wait…';await api('/auth/v1/user',{method:'PUT',headers:{Authorization:'Bearer '+r.access_token},body:JSON.stringify({password:a})});localStorage.removeItem(SKEY);localStorage.removeItem('cd_sb_session');history.replaceState(null,'',location.pathname);$('msg').textContent='Password successfully changed. अब नए password से Login करें।';setTimeout(()=>location.reload(),1400)}catch(e){$('msg').textContent=e.message}}}
 $('google').onclick=()=>{let redirect=location.href.split('#')[0].split('?')[0];location.href=SB_URL+'/auth/v1/authorize?provider=google&redirect_to='+encodeURIComponent(redirect)};
 async function refresh(s){if(!s?.refresh_token)return null;try{let j=await api('/auth/v1/token?grant_type=refresh_token',{method:'POST',body:JSON.stringify({refresh_token:s.refresh_token})});save(j);return j}catch{return null}}
 async function checkCD(s){let st=$('cdStatus'),b=$('cdBtn');st.textContent='🔒 Checking access…';b.disabled=true;try{let r=await fetch(SB_URL+'/rest/v1/subscriptions?select=status,expires_at,plan_months&user_id=eq.'+encodeURIComponent(s.user.id),{headers:{apikey:SB_KEY,Authorization:'Bearer '+s.access_token}});if(!r.ok)throw Error('Access check HTTP '+r.status);let rows=await r.json(),x=rows[0],ok=x&&x.status==='active'&&new Date(x.expires_at)>new Date();if(ok){st.className='status unlocked';st.textContent='✅ Unlocked • Valid till '+new Date(x.expires_at).toLocaleDateString('en-IN');b.textContent='Open Calculator';b.className='primary wide';b.disabled=false;b.onclick=()=>{save(s);openCalculator('cd-calculator.html')}}else{st.className='status locked';st.textContent='🔒 Locked';b.textContent='View Plans';b.className='secondary wide';b.disabled=false;b.onclick=()=>alert('CD Measurement plan purchase/activation required.')}}catch(e){st.className='status locked';st.textContent='🔒 Locked';b.textContent='Retry Access Check';b.disabled=false;b.onclick=()=>checkCD(s)}}
@@ -68,7 +70,7 @@ async function enter(s){
 }
 $('logout').onclick=async()=>{let s=sess();try{if(s?.access_token)await fetch(SB_URL+'/auth/v1/logout',{method:'POST',headers:{apikey:SB_KEY,Authorization:'Bearer '+s.access_token}})}catch{}localStorage.removeItem(SKEY);localStorage.removeItem('cd_sb_session');localStorage.removeItem('hk_access_token');localStorage.removeItem('soilmb_access_token');authView()};
 function oauthHash(){let p=new URLSearchParams(location.hash.slice(1));if(p.get('access_token')){let s={access_token:p.get('access_token'),refresh_token:p.get('refresh_token'),expires_in:+p.get('expires_in')||3600,expires_at:Math.floor(Date.now()/1000)+(+p.get('expires_in')||3600),user:null};history.replaceState(null,'',location.pathname);return s}return null}
-setTimeout(async()=>{let s=oauthHash()||sess();if(s?.access_token){try{let u=await fetch(SB_URL+'/auth/v1/user',{headers:{apikey:SB_KEY,Authorization:'Bearer '+s.access_token}});if(u.ok){s.user=await u.json();save(s);return enter(s)}}catch{}s=await refresh(s);if(s)return enter(s)}authView()},3000);
+setTimeout(async()=>{let r=recoverySession();if(r)return showPasswordReset(r);let s=oauthHash()||sess();if(s?.access_token){try{let u=await fetch(SB_URL+'/auth/v1/user',{headers:{apikey:SB_KEY,Authorization:'Bearer '+s.access_token}});if(u.ok){s.user=await u.json();save(s);return enter(s)}}catch{}s=await refresh(s);if(s)return enter(s)}authView()},3000);
 </script>
 <script id="hk-customer-corrections-js">
 (function(){
@@ -98,40 +100,47 @@ setTimeout(async()=>{let s=oauthHash()||sess();if(s?.access_token){try{let u=awa
 const PRODUCTS=[
  {id:1,code:'SOIL_MB',name:'Soil Agriculture MB Calculator',file:'soil-mb.html'},
  {id:2,code:'CD_MEASUREMENT',name:'CD Measurement Agri Calculator',file:'cd-calculator.html'},
- {id:4,code:'SOIL_LT',name:'SOIL LT MEASUREMENT BOOK',file:'lt-calculator.html',free:'LT Summary FREE',freeFile:'lt-summary.html'},
+ {id:4,code:'SOIL_LT',name:'SOIL LT MEASUREMENT BOOK',file:'lt-calculator.html'},
+ {id:6,code:'SARANSH',name:'सारांश',file:'lt-summary.html',saransh:true},
  {id:5,code:'KRISHAK_ANUDAN',name:'कृषक फसल अनुदान',file:'krishak-anudan.html'}
 ];
 function session(){try{return JSON.parse(localStorage.getItem('hk_sb_session')||'null')}catch(e){return null}}
 function openFile(f){try{if(window.HKAndroid&&typeof window.HKAndroid.openAsset==='function'){window.HKAndroid.openAsset(f);return}}catch(e){} location.href=f}
 function bridge(s){localStorage.setItem('hk_sb_session',JSON.stringify(s));localStorage.setItem('cd_sb_session',JSON.stringify(s));localStorage.setItem('soilmb_session',JSON.stringify(s));if(s?.access_token){localStorage.setItem('hk_access_token',s.access_token);localStorage.setItem('soilmb_access_token',s.access_token)}}
 async function entitlement(s,p){
+ if(p.saransh){
+   const r=await fetch(SB_URL+'/rest/v1/rpc/hkt_my_saransh_access',{method:'POST',headers:{apikey:SB_KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'application/json'},body:'{}'});
+   if(!r.ok) throw Error('HTTP '+r.status);
+   return await r.json();
+ }
  const u=SB_URL+'/rest/v1/user_entitlements?select=status,starts_at,expires_at,product_id&user_id=eq.'+encodeURIComponent(s.user.id)+'&product_id=eq.'+p.id+'&status=eq.active&order=expires_at.desc&limit=1';
  const r=await fetch(u,{headers:{apikey:SB_KEY,Authorization:'Bearer '+s.access_token}});
  if(!r.ok) throw Error('HTTP '+r.status);
  const a=await r.json(),x=a[0];
- return x&&new Date(x.expires_at)>new Date()?x:null;
+ return x&&(!x.expires_at||new Date(x.expires_at)>new Date())?x:null;
 }
 async function render(sArg){
  const home=document.getElementById('home'); if(!home)return;
  home.classList.add('hkHomeReady');
- let grid=document.getElementById('hk4grid');
- if(grid)grid.remove();
+ let grid=document.getElementById('hk4grid'); if(grid)grid.remove();
  grid=document.createElement('div');grid.id='hk4grid';grid.className='hk4products';
  const old=home.querySelector('.products'); if(old)old.after(grid); else home.appendChild(grid);
  const s=sArg||session();
  for(const p of PRODUCTS){
    const c=document.createElement('div');c.className='card product';
-   c.innerHTML='<h3>'+p.name+'</h3>'+(p.free?'<div class="freeTag">🎁 '+p.free+'</div>':'')+'<div class="status locked">🔒 Checking access…</div><button class="secondary wide" disabled>Please wait</button>'+(p.free?'<button class="secondary wide hkfree" style="margin-top:7px" disabled>Open LT Summary FREE</button>':'');
+   c.innerHTML='<h3>'+p.name+'</h3>'+(p.saransh?'<div class="freeTag">🎁 LT खरीदने पर FREE</div>':'')+'<div class="status locked">🔒 Checking access…</div><button class="secondary wide" disabled>Please wait</button>';
    grid.appendChild(c);
-   const st=c.querySelector('.status'),b=c.querySelector('button'),fb=c.querySelector('.hkfree');
+   const st=c.querySelector('.status'),b=c.querySelector('button');
    if(!s?.access_token||!s?.user?.id){st.textContent='🔒 Login required';b.textContent='Login required';continue}
    bridge(s);
    try{
      const e=await entitlement(s,p);
-     if(e){
-       st.className='status unlocked';st.textContent='✅ Unlocked • Valid till '+new Date(e.expires_at).toLocaleDateString('en-IN');
-       b.disabled=false;b.className='primary wide';b.textContent='Open Calculator';b.onclick=()=>openFile(p.file);
-       if(fb){fb.disabled=false;fb.className='primary wide hkfree';fb.onclick=()=>openFile(p.freeFile)}
+     const ok=p.saransh?e?.access_granted:!!e;
+     if(ok){
+       st.className='status unlocked';
+       if(p.saransh){st.textContent=e.access_type==='included_with_lt'?'✅ FREE with active LT':'✅ Unlocked'}
+       else st.textContent='✅ Unlocked'+(e.expires_at?' • Valid till '+new Date(e.expires_at).toLocaleDateString('en-IN'):'');
+       b.disabled=false;b.className='primary wide';b.textContent=p.saransh?'Open सारांश':'Open Calculator';b.onclick=()=>openFile(p.file);
      }else{
        st.className='status locked';st.textContent='🔒 Locked';
        b.disabled=false;b.textContent='View Plans';b.onclick=()=>alert(p.name+' का active plan/trial आवश्यक है।');
@@ -174,6 +183,53 @@ async function hkRegisterDevice(s){
   return x||{allowed:false,message:'DEVICE_CHECK_FAILED'};
 }
 window.HKRegisterDevice=hkRegisterDevice;
+})();
+</script>
+
+
+<style id="hk-menu-fix-v2">
+.hkMenuModal{display:none;position:fixed;inset:0;z-index:10020;background:#0008;padding:18px;align-items:center;justify-content:center}
+.hkMenuModal.open{display:flex}
+.hkMenuBox{width:min(94vw,520px);max-height:82vh;overflow:auto;background:#fff;border-radius:20px;padding:18px;color:#183c27;box-shadow:0 14px 45px #0005}
+.hkMenuBox h2{margin:0 0 12px}.hkMenuBox .close{float:right;background:#e9f3ec;color:#174d2b;padding:9px 12px}
+.hkMenuBox .row{padding:10px 0;border-bottom:1px solid #e5ece7;word-break:break-word}
+</style>
+<div id="hkMenuModal" class="hkMenuModal"><div class="hkMenuBox"><button id="hkMenuClose" class="close">✕</button><div id="hkMenuBody"></div></div></div>
+<script id="hk-menu-fix-v2-js">
+(function(){
+ const q=id=>document.getElementById(id);
+ function closeDrawer(){q('sideDrawer')?.classList.remove('open');q('drawerBackdrop')?.classList.remove('open')}
+ function show(title,html){closeDrawer();q('hkMenuBody').innerHTML='<h2>'+title+'</h2>'+html;q('hkMenuModal').classList.add('open')}
+ q('hkMenuClose')?.addEventListener('click',()=>q('hkMenuModal').classList.remove('open'));
+ q('hkMenuModal')?.addEventListener('click',e=>{if(e.target===q('hkMenuModal'))q('hkMenuModal').classList.remove('open')});
+ function S(){try{return JSON.parse(localStorage.getItem('hk_sb_session')||'null')}catch(e){return null}}
+ q('menuProfile')?.addEventListener('click',()=>{
+   const s=S(),u=s?.user||{},m=u.user_metadata||{};
+   show('👤 Profile','<div class="row"><b>Name:</b> '+(m.name||'Customer')+'</div><div class="row"><b>Email:</b> '+(u.email||'-')+'</div><div class="row"><b>Mobile:</b> '+(m.mobile||'-')+'</div>');
+ });
+ q('menuPurchases')?.addEventListener('click',async()=>{
+   const s=S(); if(!s?.access_token||!s?.user?.id)return show('🛒 My Purchases','Login required.');
+   show('🛒 My Purchases','Loading…');
+   try{
+     const url=SB_URL+'/rest/v1/user_entitlements?select=status,starts_at,expires_at,product_id&user_id=eq.'+encodeURIComponent(s.user.id)+'&order=expires_at.desc';
+     const r=await fetch(url,{headers:{apikey:SB_KEY,Authorization:'Bearer '+s.access_token}});
+     if(!r.ok)throw Error('HTTP '+r.status); const a=await r.json();
+     const names={1:'Soil Agriculture MB',2:'CD Measurement',4:'SOIL LT',5:'कृषक फसल अनुदान',6:'सारांश'};
+     const html=a.length?a.map(x=>'<div class="row"><b>'+(names[x.product_id]||('Product '+x.product_id))+'</b><br>Status: '+x.status+(x.expires_at?'<br>Valid till: '+new Date(x.expires_at).toLocaleDateString('en-IN'):'')+'</div>').join(''):'No purchase/access record found.';
+     show('🛒 My Purchases',html);
+   }catch(e){show('🛒 My Purchases','Unable to load purchases. '+e.message)}
+ });
+ q('menuProgress')?.addEventListener('click',()=>show('📊 Progress Report','यह section अभी customer usage data मिलने पर report दिखाएगा।'));
+ q('menuRefund')?.addEventListener('click',()=>show('📄 Refund Policy','Refund/payment dispute के लिए Healthy KrishiTech support से payment ID और registered email के साथ संपर्क करें।'));
+ async function shareApp(){
+   closeDrawer();
+   const data={title:'Healthy KrishiTech',text:'Healthy KrishiTech — जीवन का आधार देश का किसान',url:'https://rpy5252-debug.github.io/Healthy-KrishiTech-Android/'};
+   try{if(navigator.share){await navigator.share(data)}else{await navigator.clipboard.writeText(data.url);alert('App link copied.')}}catch(e){}
+ }
+ q('menuShare')?.addEventListener('click',shareApp);
+ q('menuRefer')?.addEventListener('click',shareApp);
+ q('menuRate')?.addEventListener('click',()=>show('⭐ Rate App','Play Store listing live होने के बाद यहाँ direct rating button जोड़ा जाएगा।'));
+ q('menuSupport')?.addEventListener('click',()=>show('💬 WhatsApp Support','Admin WhatsApp number backend में set होने के बाद यहाँ direct WhatsApp support खुलेगा।'));
 })();
 </script>
 
