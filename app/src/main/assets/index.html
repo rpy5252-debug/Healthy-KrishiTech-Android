@@ -105,7 +105,7 @@ const PRODUCTS=[
  {id:5,code:'KRISHAK_ANUDAN',name:'कृषक फसल अनुदान',file:'krishak-anudan.html'}
 ];
 function session(){try{return JSON.parse(localStorage.getItem('hk_sb_session')||'null')}catch(e){return null}}
-function openFile(f){try{if(window.HKAndroid&&typeof window.HKAndroid.openAsset==='function'){window.HKAndroid.openAsset(f);return}}catch(e){} location.href=f}
+function openFile(f){try{if(window.HKAndroid&&typeof window.HKAndroid.openAsset==='function'){window.HKAndroid.openAsset(f);return}}catch(e){} alert('Calculator Android bridge उपलब्ध नहीं है। कृपया नया Healthy KrishiTech APK इंस्टॉल करें।');}
 function bridge(s){localStorage.setItem('hk_sb_session',JSON.stringify(s));localStorage.setItem('cd_sb_session',JSON.stringify(s));localStorage.setItem('soilmb_session',JSON.stringify(s));if(s?.access_token){localStorage.setItem('hk_access_token',s.access_token);localStorage.setItem('soilmb_access_token',s.access_token)}}
 async function entitlement(s,p){
  if(p.saransh){

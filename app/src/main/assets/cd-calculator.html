@@ -103,6 +103,23 @@ Q('setDagWidth').oninput=()=>{Q('dagWidth').value=Q('setDagWidth').value;prep()}
 const SUPABASE_URL='https://irkbuqavzfajrpuolzid.supabase.co';
 const SUPABASE_KEY='sb_publishable_dnYAoZd4RFDbWnntZbryAw_IbZOZwIk';
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
+// Healthy KrishiTech single-login bridge. Never grant entitlement from local storage.
+(async function adoptAppSession(){
+  let appSession=null;
+  try { appSession=JSON.parse(localStorage.getItem('hk_sb_session')||'null'); } catch(e) {}
+  if(!appSession?.access_token || !appSession?.refresh_token) return;
+  try {
+    const {data,error}=await sb.auth.setSession({access_token:appSession.access_token,refresh_token:appSession.refresh_token});
+    if(error || !data?.session) return;
+    const panel=document.getElementById('loginPanel');
+    if(panel) panel.style.display='none';
+    const logout=document.getElementById('logoutCustomer');
+    if(logout) logout.style.display='none';
+    await refreshAccount();
+  }catch(e){console.warn('App session bridge failed',e)}
+})();
+
 const CD_PLANS={9:{months:1,days:30,amount:199},10:{months:3,days:90,amount:599},11:{months:6,days:180,amount:1099},12:{months:12,days:360,amount:2199}};
 let currentSession=null,currentEntitlement=null;
 const msg=t=>Q('loginMsg').textContent=t;
@@ -147,7 +164,7 @@ async function buyPlan(planId){
  }});rz.on('payment.failed',()=>showAccountMessage('Payment failed / cancelled'));rz.open();
 }
 document.querySelectorAll('.buyPlan').forEach(b=>b.onclick=()=>buyPlan(Number(b.dataset.plan)));
-Q('refreshAccount').onclick=refreshAccount;Q('logoutCustomer').onclick=async()=>{setLocked(true,'You are logged out. Login and an active plan are required.');await sb.auth.signOut();currentSession=null;currentEntitlement=null;Q('custName').textContent='Login required';Q('custContact').textContent='—';Q('subStatus').textContent='No Active Plan';Q('currentPlan').textContent='—';Q('activationDate').textContent='—';Q('expiryDate').textContent='—';Q('remainingDays').textContent='—';Q('paymentStatus').textContent='Logged out';Q('paymentRef').textContent='—';accountTab();Q('accessOverlay').style.display='none';msg('Logged out. Login again to use the calculator.');};
+Q('refreshAccount').onclick=refreshAccount;Q('logoutCustomer').onclick=async()=>{if(localStorage.getItem('hk_sb_session')){location.href='index.html';return;} setLocked(true,'You are logged out. Login and an active plan are required.');await sb.auth.signOut();currentSession=null;currentEntitlement=null;Q('custName').textContent='Login required';Q('custContact').textContent='—';Q('subStatus').textContent='No Active Plan';Q('currentPlan').textContent='—';Q('activationDate').textContent='—';Q('expiryDate').textContent='—';Q('remainingDays').textContent='—';Q('paymentStatus').textContent='Logged out';Q('paymentRef').textContent='—';accountTab();Q('accessOverlay').style.display='none';msg('Logged out. Login again to use the calculator.');};
 Q('openAccount').onclick=()=>{Q('accessOverlay').style.display='none';accountTab()};
 sb.auth.onAuthStateChange(()=>setTimeout(refreshAccount,0));
 setTimeout(refreshAccount,3300);
