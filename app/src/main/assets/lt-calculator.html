@@ -277,29 +277,47 @@ function ltOverlay(show,text){const o=document.getElementById('ltAccessOverlay')
 function ltAccount(){document.querySelectorAll('.sec').forEach(x=>x.classList.remove('on'));document.getElementById('ac')?.classList.add('on');ltOverlay(false)}
 document.getElementById('ltOpenAccount')?.addEventListener('click',ltAccount);
 function ltGuardTabs(){document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',e=>{let target=(b.getAttribute('onclick')||'');if(!ltAccessGranted&&!target.includes("'ac'")){e.preventDefault();e.stopImmediatePropagation();ltOverlay(true,'Login के बाद 2-Day Trial या active LT plan आवश्यक है।');}},true))}
-
 function ltAppSession(){
- try{const s=JSON.parse(localStorage.getItem('hk_sb_session')||'null');
-  return s?.access_token&&s?.user?.id?s:null;
- }catch(_){return null}
+ try{
+  const session=JSON.parse(localStorage.getItem('hk_sb_session')||'null');
+  if(session?.access_token && session?.user?.id) return session;
+ }catch(e){}
+ return null;
 }
-async function ltServerEntitlement(session){
- const u=LT_SECURITY.supabaseUrl+'/rest/v1/user_entitlements?select=status,expires_at,product_id&user_id=eq.'+encodeURIComponent(session.user.id)+'&product_id=eq.4&status=eq.active&order=expires_at.desc&limit=1';
- const r=await fetch(u,{headers:{apikey:LT_SECURITY.publishableKey,Authorization:'Bearer '+session.access_token},cache:'no-store'});
- if(!r.ok)throw Error('Access verification HTTP '+r.status);
- const rows=await r.json();
- return Array.isArray(rows)&&rows.some(x=>x.product_id===4&&x.status==='active'&&x.expires_at&&new Date(x.expires_at).getTime()>Date.now());
-}
-
 async function ltCheckAccess(){
- ltOverlay(true,'Healthy KrishiTech LT access verify हो रहा है…');
  try{
   const session=ltAppSession();
-  if(!session){ltOverlay(true,'पहले Healthy KrishiTech ऐप में Login करें।');return}
-  const allowed=await ltServerEntitlement(session);
-  if(allowed){ltOverlay(false);return}
-  ltOverlay(true,'LT का active plan नहीं मिला या plan समाप्त हो चुका है। Account / Plans खोलें।');
- }catch(e){ltOverlay(true,'LT access server से verify नहीं हो सका। Internet / Login check करें।')}
+  if(!session){
+   ltOverlay(true,'Healthy KrishiTech app में Login / Register करें। LT अलग login नहीं मांगेगा।');
+   return;
+  }
+  const url=LT_SECURITY.supabaseUrl+'/rest/v1/user_entitlements?select=*&user_id=eq.'+
+   encodeURIComponent(session.user.id)+'&order=expires_at.desc&limit=20';
+  const r=await fetch(url,{headers:{
+   apikey:LT_SECURITY.publishableKey,
+   Authorization:'Bearer '+session.access_token
+  }});
+  if(r.status===401){
+   ltOverlay(true,'Healthy KrishiTech login session expire हो गया है। App में दोबारा Login करें।');
+   return;
+  }
+  if(!r.ok){
+   ltOverlay(true,'LT access server से verify नहीं हो सका। Calculator सुरक्षित रूप से locked है।');
+   return;
+  }
+  const ents=await r.json(), now=Date.now();
+  const match=(ents||[]).find(x=>{
+   const code=String(x.product_code||x.product||x.product_key||'').toLowerCase();
+   const isLT=code===LT_SECURITY.productCode || Number(x.product_id)===LT_SECURITY.productId;
+   const st=String(x.status||'active').toLowerCase();
+   return isLT && (st==='active'||st==='trial') &&
+          x.expires_at && new Date(x.expires_at).getTime()>now;
+  });
+  if(match){ ltOverlay(false); return; }
+  ltOverlay(true,'LT का active Trial/Plan नहीं मिला। Account / Plans से plan चुनें। Payment server verification के बाद ही unlock होगा।');
+ }catch(e){
+  ltOverlay(true,'Security check failed. Calculator सुरक्षित रूप से locked है।');
+ }
 }
 /* ===== V7 ADMIN RAZORPAY PAYMENT TEST ===== */
 const LT_PAY={
@@ -309,9 +327,10 @@ const LT_PAY={
 };
 function ltPayStatus(msg,ok){const e=document.getElementById('ltPayTestStatus');if(e){e.textContent=msg;e.style.color=ok===false?'#b71c1c':'#18543b'}}
 async function ltSession(){
- const s=ltAppSession();
- if(!s)throw new Error('Healthy KrishiTech ऐप में Login करें।');
- return s;
+ const session=ltAppSession();
+ if(!session?.access_token || !session?.user?.id)
+  throw new Error('Healthy KrishiTech account login session नहीं मिला। पहले app में Login करें।');
+ return session;
 }
 function ltOrderFromResponse(j){return j?.order||j?.data?.order||j?.razorpay_order||j?.data||j}
 function ltPick(obj,...keys){for(const k of keys){if(obj&&obj[k]!=null)return obj[k]}return null}
@@ -340,6 +359,7 @@ async function ltPay(planCode,btn){
     const vj=await vr.json().catch(()=>({}));
     if(!vr.ok||vj?.success===false) throw new Error(vj?.error||vj?.message||('Verify HTTP '+vr.status));
     ltPayStatus('✅ PAYMENT VERIFIED • '+planCode+' entitlement server पर update हुआ।',true);
+    await ltCheckAccess();
     alert('Payment Test सफल\nSOIL_LT • '+planCode+'\nServer verification complete.');
    }catch(e){ltPayStatus('❌ Verify failed: '+e.message,false);alert('Payment verification failed: '+e.message)}
   },modal:{ondismiss:function(){ltPayStatus('Payment checkout बंद किया गया।')}}});
@@ -347,10 +367,6 @@ async function ltPay(planCode,btn){
   rz.open();
  }catch(e){ltPayStatus('❌ '+e.message,false);alert(e.message)}finally{if(btn){btn.disabled=false;btn.textContent=old}}
 }
-
-/* ADMIN TEST MODE: payment/security lock temporarily bypassed for calculator testing. */
-ltAccessGranted=true;
-ltOverlay(false);
 
 /* Splash close is handled by the independent 3-second failsafe near the top of BODY. */
 </script><script>
